@@ -1,0 +1,10 @@
+Wordpress insert the below into an HTML block
+
+<div align="center">
+<script src="/wp/wp-content/uploads/fsjs/jquery.js"></script>
+<script src="/wp/wp-content/uploads/fsjs/bootstrap.min.js"></script>
+<script src="/wp/wp-content/uploads/fsjs/plugins/dataTables/jquery.dataTables.js"></script>
+<script src="/wp/wp-content/uploads/fsjs/plugins/dataTables/dataTables.bootstrap.js"></script>
+<script src="/wp/wp-content/uploads/fsjs/freecycle.js"></script>
+<div id="freecycle" class="table-responsive"></div>
+</div>
