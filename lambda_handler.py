@@ -3,7 +3,9 @@ import os
 from email import policy
 import boto3
 
-bucketConfig = 'tv-freecycle'
+import updateCSV
+
+targetBucket = 'tv-freecycle'
 attbucket = "tvf-att"
 
 
@@ -13,7 +15,7 @@ def lambda_handler(event, context):
     record = event['Records'][0]
     assert record['eventSource'] == 'aws:ses'
 
-    o = s3.get_object(Bucket=bucketConfig, Key='freecycle/' + record['ses']['mail']['messageId'])
+    o = s3.get_object(Bucket=targetBucket, Key='freecycle/' + record['ses']['mail']['messageId'])
     raw_mail = o['Body'].read()
     msg = email.message_from_bytes(raw_mail, policy=policy.default)
     bdy = msg.get_body('plain')
@@ -23,7 +25,8 @@ def lambda_handler(event, context):
     fileName = record['ses']['mail']['messageId'] + '.txt'
     filePath = os.path.join('/tmp', fileName)
     fp = open(filePath, 'w')
-    fp.write(bdy.get_content())
+    msgbdy = bdy.get_content()
+    fp.write(msgbdy)
     print('========')
 
     for part in msg.walk():
@@ -40,12 +43,14 @@ def lambda_handler(event, context):
         s3.upload_file(Bucket=attbucket, Key=keyName, Filename=imgPath,
                 ExtraArgs={'ContentType': "image/jpg", 'ACL': "public-read"})
 
-        url = 'https://' + attbucket + '.s3.eu-west-2.amazonaws.com/' + fileName
-        lin = '<img src="' + url + '" width="50%">'
+        lin = 'url: ' + imgName
         fp.write(lin)
 
     fp.close()
+
+    updateCSV.createLine(filePath, targetBucket)
+
     tmpf = 'bodies/' + fileName
-    s3.upload_file(Bucket=bucketConfig, Key=tmpf, Filename=filePath,
-        ExtraArgs={'ContentType': "text/html"})  # , 'ACL': "public-read"})
-    print('========')
+    s3.upload_file(Bucket=targetBucket, Key=tmpf, Filename=filePath,
+        ExtraArgs={'ContentType': "text/html"})
+    print('======== done')

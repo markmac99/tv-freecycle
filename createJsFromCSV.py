@@ -16,14 +16,14 @@ QUOTE_CHAR = '"'
 S3_BUCKET = "s3://tv-freecycle"
 S3_INPUT_DIR = f"{S3_BUCKET}/inputs/"
 S3_OUTPUT_DIR = f"{S3_BUCKET}/tmp/"
-S3_TARGET="tvf-att"
+S3_TARGET = "tvf-att"
 
 CREATE_DATABASE = f"CREATE DATABASE IF NOT EXISTS {ATHENA_DB};"
 DROP_DATABASE = f"DROP DATABASE {ATHENA_DB};"
 DROP_TABLE = f"DROP TABLE {ATHENA_DB}.{ATHENA_TABLE};"
 
 CREATE_TABLE = f"CREATE EXTERNAL TABLE IF NOT EXISTS {ATHENA_DB}.{ATHENA_TABLE} (" \
-    "rectyp VARCHAR(10), item VARCHAR(50), descr VARCHAR(300), price VARCHAR(32), " \
+    "recdt VARCHAR(32), rectyp VARCHAR(10), item VARCHAR(50), descr VARCHAR(300), price VARCHAR(32), " \
     "contact_n VARCHAR(64), contact_e VARCHAR(64), contact_p VARCHAR(32), " \
     "url1 VARCHAR(255), url2 VARCHAR(255), url3 VARCHAR(255), deleted INT ) " \
     "ROW FORMAT DELIMITED " \
@@ -54,10 +54,10 @@ def writeJSHeader(f, sec):
     f.write('cell.innerHTML = "\\<b\\>Contact";\n')
     i = i + 1
     f.write('var cell = row.insertCell(' + str(i) + ');\n')
-    f.write('cell.innerHTML = "\\<b\\>email";\n')
+    f.write('cell.innerHTML = "\\<b\\>phone";\n')
     i = i + 1
     f.write('var cell = row.insertCell(' + str(i) + ');\n')
-    f.write('cell.innerHTML = "\\<b\\>phone";\n')
+    f.write('cell.innerHTML = "\\<b\\>email";\n')
     if sec != 'wanted':
         i = i + 1
         f.write('var cell = row.insertCell(' + str(i) + ');\n')
@@ -79,17 +79,17 @@ def writeFSRecord(rw):
         fnam.write('cell.innerHTML = "Nothing to show";\n')
     for i in range(result_row_count):
         rwdata = rw[i]['Data']
-        typ = rwdata[0]['VarCharValue']
+        typ = rwdata[1]['VarCharValue']
         if typ != 'rectyp':
-            typ = rwdata[0]['VarCharValue']
-            ite = rwdata[1]['VarCharValue'].replace('�', '-')
-            des = rwdata[2]['VarCharValue'].replace('�', '-')
-            nam = rwdata[4]['VarCharValue']
-            ema = rwdata[5]['VarCharValue']
-            phn = rwdata[6]['VarCharValue']
-            url1 = rwdata[7]['VarCharValue']
-            url2 = rwdata[8]['VarCharValue']
-            url3 = rwdata[9]['VarCharValue']
+            typ = rwdata[1]['VarCharValue']
+            ite = rwdata[2]['VarCharValue'].replace('�', '-')
+            des = rwdata[3]['VarCharValue'].replace('�', '-')
+            nam = rwdata[5]['VarCharValue']
+            ema = rwdata[6]['VarCharValue']
+            phn = rwdata[7]['VarCharValue']
+            url1 = rwdata[8]['VarCharValue']
+            url2 = rwdata[9]['VarCharValue']
+            url3 = rwdata[10]['VarCharValue']
             fnam.write('var row = table.insertRow(-1);\n')
             fnam.write('var cell = row.insertCell(0);\n')
             fnam.write('cell.innerHTML = "' + ite + '";\n')
@@ -104,7 +104,7 @@ def writeFSRecord(rw):
             fnam.write('var cell = row.insertCell(5);\n')
             lstr = '"'
             if len(url1.strip()) > 0:
-                lstr = lstr + '\\<a href=\\"' + IMGBASEURL +  url1 + '\\"\\>link\\</a\\>;'
+                lstr = lstr + '\\<a href=\\"' + IMGBASEURL + url1 + '\\"\\>link\\</a\\>;'
             if len(url2.strip()) > 0:
                 lstr = lstr + '\\<a href=\\"' + IMGBASEURL + url2 + '\\"\\>link\\</a\\>;'
             if len(url3.strip()) > 0:
@@ -125,25 +125,25 @@ def writeSARecord(rw):
         fnam.write('cell.innerHTML = "Nothing to show";\n')
     for i in range(result_row_count):
         rwdata = rw[i]['Data']
-        typ = rwdata[0]['VarCharValue']
+        typ = rwdata[1]['VarCharValue']
         if typ != 'rectyp':
-            typ = rwdata[0]['VarCharValue']
-            ite = rwdata[1]['VarCharValue'].replace('�', '-')
-            des = rwdata[2]['VarCharValue'].replace('�', '-')
-            pri = rwdata[3]['VarCharValue']
-            nam = rwdata[4]['VarCharValue']
-            ema = rwdata[5]['VarCharValue']
-            phn = rwdata[6]['VarCharValue']
-            url1 = rwdata[7]['VarCharValue']
-            url2 = rwdata[8]['VarCharValue']
-            url3 = rwdata[9]['VarCharValue']
+            typ = rwdata[1]['VarCharValue']
+            ite = rwdata[2]['VarCharValue'].replace('�', '-')
+            des = rwdata[3]['VarCharValue'].replace('�', '-')
+            pri = rwdata[4]['VarCharValue']
+            nam = rwdata[5]['VarCharValue']
+            ema = rwdata[6]['VarCharValue']
+            phn = rwdata[7]['VarCharValue']
+            url1 = rwdata[8]['VarCharValue']
+            url2 = rwdata[9]['VarCharValue']
+            url3 = rwdata[10]['VarCharValue']
             fnam.write('var row = table.insertRow(-1);\n')
             fnam.write('var cell = row.insertCell(0);\n')
             fnam.write('cell.innerHTML = "' + ite + '";\n')
             fnam.write('var cell = row.insertCell(1);\n')
             fnam.write('cell.innerHTML = "' + des + '";\n')
             fnam.write('var cell = row.insertCell(2);\n')
-            fnam.write('cell.innerHTML = "' + pri + '";\n')
+            fnam.write('cell.innerHTML = "&#163;' + pri + '";\n')
             fnam.write('var cell = row.insertCell(3);\n')
             fnam.write('cell.innerHTML = "' + nam + '";\n')
             fnam.write('var cell = row.insertCell(4);\n')
@@ -174,14 +174,14 @@ def writeWTRecord(rw):
         fnam.write('cell.innerHTML = "Nothing to show";\n')
     for i in range(result_row_count):
         rwdata = rw[i]['Data']
-        typ = rwdata[0]['VarCharValue']
+        typ = rwdata[1]['VarCharValue']
         if typ != 'rectyp':
-            typ = rwdata[0]['VarCharValue']
-            ite = rwdata[1]['VarCharValue'].replace('�', '-')
-            des = rwdata[2]['VarCharValue'].replace('�', '-')
-            nam = rwdata[4]['VarCharValue']
-            ema = rwdata[5]['VarCharValue']
-            phn = rwdata[6]['VarCharValue']
+            typ = rwdata[1]['VarCharValue']
+            ite = rwdata[2]['VarCharValue'].replace('�', '-')
+            des = rwdata[3]['VarCharValue'].replace('�', '-')
+            nam = rwdata[5]['VarCharValue']
+            ema = rwdata[6]['VarCharValue']
+            phn = rwdata[7]['VarCharValue']
             fnam.write('var row = table.insertRow(-1);\n')
             fnam.write('var cell = row.insertCell(0);\n')
             fnam.write('cell.innerHTML = "' + ite + '";\n')
@@ -236,12 +236,17 @@ def main():
     athena_client = boto3.client('athena', region_name='eu-west-2')
     try:
         # print(CREATE_TABLE)
+        print('Creating table and database')
         execute_query(athena_client, CREATE_DATABASE)
         execute_query(athena_client, CREATE_TABLE)
 
+        print('executing query')
         amazon_response = execute_query(athena_client,
-            f'SELECT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp LIKE \'Freecycle%\' AND deleted=0;')
+            f'SELECT DISTINCT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'Freecycle\' AND deleted=0 ORDER by 1 DESC;')
+
+        print('fetching query results')
         query_results = fetch_query_results(athena_client, amazon_response)
+
         result_row_count = len(query_results['ResultSet']['Rows'])
         print('got ', result_row_count - 1, ' rows')
         if result_row_count > 0:
@@ -249,7 +254,7 @@ def main():
             writeFSRecord(r)
 
         amazon_response = execute_query(athena_client,
-            f'SELECT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp LIKE \'Wanted%\' AND deleted=0;')
+            f'SELECT DISTINCT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'Wanted\' AND deleted=0 ORDER by 1 DESC;')
         query_results = fetch_query_results(athena_client, amazon_response)
         result_row_count = len(query_results['ResultSet']['Rows'])
         print('got ', result_row_count - 1, ' rows')
@@ -258,7 +263,7 @@ def main():
             writeWTRecord(r)
 
         amazon_response = execute_query(athena_client,
-            f'SELECT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp LIKE \'For Sale%\' AND deleted=0;')
+            f'SELECT DISTINCT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'For Sale\' AND deleted=0 ORDER by 1 DESC;')
         query_results = fetch_query_results(athena_client, amazon_response)
         result_row_count = len(query_results['ResultSet']['Rows'])
         print('got ', result_row_count - 1, ' rows')
