@@ -1,4 +1,6 @@
-photos/*
-bodies/*
+photos
+bodies
 *.js
 *.zip
+__pycache__
+newfile.csv
