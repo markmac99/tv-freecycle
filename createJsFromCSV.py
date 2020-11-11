@@ -76,14 +76,14 @@ def writeFSRecord(rw):
     if result_row_count == 1:
         fnam.write('var row = table.insertRow(-1);\n')
         fnam.write('var cell = row.insertCell(0);\n')
-        fnam.write('cell.innerHTML = "Nothing to show";\n')
+        fnam.write('cell.innerHTML = "Nothing at the moment";\n')
     for i in range(result_row_count):
         rwdata = rw[i]['Data']
         typ = rwdata[1]['VarCharValue']
         if typ != 'rectyp':
             typ = rwdata[1]['VarCharValue']
-            ite = rwdata[2]['VarCharValue'].replace('�', '-')
-            des = rwdata[3]['VarCharValue'].replace('�', '-')
+            ite = rwdata[2]['VarCharValue'].replace('�', '')
+            des = rwdata[3]['VarCharValue'].replace('�', '')
             nam = rwdata[5]['VarCharValue']
             ema = rwdata[6]['VarCharValue']
             phn = rwdata[7]['VarCharValue']
@@ -122,14 +122,14 @@ def writeSARecord(rw):
     if result_row_count == 1:
         fnam.write('var row = table.insertRow(-1);\n')
         fnam.write('var cell = row.insertCell(0);\n')
-        fnam.write('cell.innerHTML = "Nothing to show";\n')
+        fnam.write('cell.innerHTML = "Nothing at the moment";\n')
     for i in range(result_row_count):
         rwdata = rw[i]['Data']
         typ = rwdata[1]['VarCharValue']
         if typ != 'rectyp':
             typ = rwdata[1]['VarCharValue']
-            ite = rwdata[2]['VarCharValue'].replace('�', '-')
-            des = rwdata[3]['VarCharValue'].replace('�', '-')
+            ite = rwdata[2]['VarCharValue'].replace('�', '')
+            des = rwdata[3]['VarCharValue'].replace('�', '')
             pri = rwdata[4]['VarCharValue']
             nam = rwdata[5]['VarCharValue']
             ema = rwdata[6]['VarCharValue']
@@ -171,14 +171,14 @@ def writeWTRecord(rw):
     if result_row_count == 1:
         fnam.write('var row = table.insertRow(-1);\n')
         fnam.write('var cell = row.insertCell(0);\n')
-        fnam.write('cell.innerHTML = "Nothing to show";\n')
+        fnam.write('cell.innerHTML = "Nothing at the moment";\n')
     for i in range(result_row_count):
         rwdata = rw[i]['Data']
         typ = rwdata[1]['VarCharValue']
         if typ != 'rectyp':
             typ = rwdata[1]['VarCharValue']
-            ite = rwdata[2]['VarCharValue'].replace('�', '-')
-            des = rwdata[3]['VarCharValue'].replace('�', '-')
+            ite = rwdata[2]['VarCharValue'].replace('�', '')
+            des = rwdata[3]['VarCharValue'].replace('�', '')
             nam = rwdata[5]['VarCharValue']
             ema = rwdata[6]['VarCharValue']
             phn = rwdata[7]['VarCharValue']
