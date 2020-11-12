@@ -6,23 +6,24 @@ import boto3
 from botocore import exceptions
 import time
 
+import config
+
 IMGBASEURL = 'https://tvf-att.s3.eu-west-2.amazonaws.com/'
 MAX_ATTEMPTS = 5
-ATHENA_DB = 'FREECYCLEDB'
 ATHENA_TABLE = 'ENTRIES'
 FIELD_DELIMITER = ","
 LINE_DELIMITER = "\n"
 QUOTE_CHAR = '"'
 S3_BUCKET = "s3://tv-freecycle"
-S3_INPUT_DIR = f"{S3_BUCKET}/inputs/"
+S3_INPUT_DIR = f"{S3_BUCKET}/{config.LISTFLDR}/"
 S3_OUTPUT_DIR = f"{S3_BUCKET}/tmp/"
 S3_TARGET = "tvf-att"
 
-CREATE_DATABASE = f"CREATE DATABASE IF NOT EXISTS {ATHENA_DB};"
-DROP_DATABASE = f"DROP DATABASE {ATHENA_DB};"
-DROP_TABLE = f"DROP TABLE {ATHENA_DB}.{ATHENA_TABLE};"
+CREATE_DATABASE = f"CREATE DATABASE IF NOT EXISTS {config.ATHENA_DB};"
+DROP_DATABASE = f"DROP DATABASE {config.ATHENA_DB};"
+DROP_TABLE = f"DROP TABLE {config.ATHENA_DB}.{ATHENA_TABLE};"
 
-CREATE_TABLE = f"CREATE EXTERNAL TABLE IF NOT EXISTS {ATHENA_DB}.{ATHENA_TABLE} (" \
+CREATE_TABLE = f"CREATE EXTERNAL TABLE IF NOT EXISTS {config.ATHENA_DB}.{ATHENA_TABLE} (" \
     "recdt VARCHAR(32), rectyp VARCHAR(10), item VARCHAR(50), descr VARCHAR(300), price VARCHAR(32), " \
     "contact_n VARCHAR(64), contact_e VARCHAR(64), contact_p VARCHAR(32), " \
     "url1 VARCHAR(255), url2 VARCHAR(255), url3 VARCHAR(255), deleted INT ) " \
@@ -242,7 +243,7 @@ def main():
 
         print('executing query')
         amazon_response = execute_query(athena_client,
-            f'SELECT DISTINCT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'Freecycle\' AND deleted=0 ORDER by 1 DESC;')
+            f'SELECT DISTINCT * FROM {config.ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'Freecycle\' AND deleted=0 ORDER by 1 DESC;')
 
         print('fetching query results')
         query_results = fetch_query_results(athena_client, amazon_response)
@@ -254,7 +255,7 @@ def main():
             writeFSRecord(r)
 
         amazon_response = execute_query(athena_client,
-            f'SELECT DISTINCT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'Wanted\' AND deleted=0 ORDER by 1 DESC;')
+            f'SELECT DISTINCT * FROM {config.ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'Wanted\' AND deleted=0 ORDER by 1 DESC;')
         query_results = fetch_query_results(athena_client, amazon_response)
         result_row_count = len(query_results['ResultSet']['Rows'])
         print('got ', result_row_count - 1, ' rows')
@@ -263,7 +264,7 @@ def main():
             writeWTRecord(r)
 
         amazon_response = execute_query(athena_client,
-            f'SELECT DISTINCT * FROM {ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'For Sale\' AND deleted=0 ORDER by 1 DESC;')
+            f'SELECT DISTINCT * FROM {config.ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'For Sale\' AND deleted=0 ORDER by 1 DESC;')
         query_results = fetch_query_results(athena_client, amazon_response)
         result_row_count = len(query_results['ResultSet']['Rows'])
         print('got ', result_row_count - 1, ' rows')

@@ -3,4 +3,4 @@ bodies
 *.js
 *.zip
 __pycache__
-newfile.csv
+*snewfile.csv

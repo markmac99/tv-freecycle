@@ -6,6 +6,11 @@ import boto3
 import os
 from datetime import datetime
 
+import config
+
+INUSEFLG = config.LISTFLDR + '/inuse.txt'
+CSVFILE = config.LISTFLDR + '/' + config.CSVNAME
+
 
 def createLine(fname, targetBucket):
     f = open(fname, 'r')
@@ -57,16 +62,15 @@ def createLine(fname, targetBucket):
 
     s3 = boto3.client('s3')
 
-    keyName = 'inputs/freecycle-data.csv'
-    fileName = os.path.join(os.getenv('TMP'), 'freecycle-data.csv')
+    fileName = os.path.join(os.getenv('TMP'), config.CSVNAME)
+    print(CSVFILE, fileName, targetBucket)
 
-    print(keyName, fileName, targetBucket)
-    s3.download_file(Bucket=targetBucket, Key=keyName, Filename=fileName)
+    s3.download_file(Bucket=targetBucket, Key=CSVFILE, Filename=fileName)
     with open(fileName, "a+") as f:
         print('writing ', csvline)
         f.write(csvline)
     f.close()
-    s3.upload_file(Bucket=targetBucket, Key=keyName, Filename=fileName)
+    s3.upload_file(Bucket=targetBucket, Key=CSVFILE, Filename=fileName)
     return csvline
 
 

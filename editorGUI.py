@@ -4,9 +4,14 @@ import os
 from tkinter import messagebox
 import boto3
 import datetime
+
 import createJsFromCSV
+import config
 
 targetBucket = 'tv-freecycle'
+
+INUSEFLG = config.LISTFLDR + '/inuse.txt'
+CSVFILE = config.LISTFLDR + '/' + config.CSVNAME
 
 
 def updateData():
@@ -43,12 +48,11 @@ def updateData():
 
     s3 = boto3.client('s3')
     # upload flag to warn the email handler that the CSV file is in use
-    s3.upload_file(Bucket=targetBucket, Key='inputs/inuse.txt', Filename='inuse.txt')
+    s3.upload_file(Bucket=targetBucket, Key=INUSEFLG, Filename='inuse.txt')
 
     # download the CSVfile
-    keyName = 'inputs/freecycle-data.csv'
-    fileName = os.path.join(os.getenv('TMP'), 'freecycle-data.csv')
-    s3.download_file(Bucket=targetBucket, Key=keyName, Filename=fileName)
+    fileName = os.path.join(os.getenv('TMP'), config.CSVNAME)
+    s3.download_file(Bucket=targetBucket, Key=CSVFILE, Filename=fileName)
 
     # read the data and count how many rows i need
     rows = 0
@@ -81,7 +85,7 @@ def updateData():
 
     # function to save the data. Needs to be here as it needs 'rows'
     def saveme():
-        with open('newfile.csv', 'w', newline='') as outfile:
+        with open(config.NEWNAME, 'w', newline='') as outfile:
             csvw = csv.writer(outfile, delimiter=',', lineterminator='\n')
             csvw.writerow(hdr)
             for i in range(rows):
@@ -93,10 +97,10 @@ def updateData():
                 else:
                     print('removing ', fsdata[i][2], ' as more than 7wks old')
 
-        s3.upload_file(Bucket=targetBucket, Key=keyName, Filename="newfile.csv")
+        s3.upload_file(Bucket=targetBucket, Key=CSVFILE, Filename=config.NEWNAME)
 
         # delete the flagfile, its now safe to update the CSV file
-        s3.delete_object(Bucket=targetBucket, Key='inputs/inuse.txt')
+        s3.delete_object(Bucket=targetBucket, Key=INUSEFLG)
 
         # update the webpage
         createJsFromCSV.main()
@@ -121,9 +125,9 @@ def updateData():
 
     # Launch the GUI
     root.mainloop()
-    
+
     # delete the flagfile, its now safe to update the CSV file
-    s3.delete_object(Bucket=targetBucket, Key='inputs/inuse.txt')
+    s3.delete_object(Bucket=targetBucket, Key=INUSEFLG)
 
 
 if __name__ == '__main__':

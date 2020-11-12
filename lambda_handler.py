@@ -5,10 +5,12 @@ import boto3
 from botocore.exceptions import ClientError
 import time
 
+import config
 import updateCSV
 
 targetBucket = 'tv-freecycle'
 attbucket = "tvf-att"
+INUSEFLG = config.LISTFLDR + '/inuse.txt'
 
 
 def lambda_handler(event, context):
@@ -20,7 +22,7 @@ def lambda_handler(event, context):
     inuse = True
     while inuse is True:
         try:
-            s3.head_object(Bucket=targetBucket, Key='inputs/inuse.txt')
+            s3.head_object(Bucket=targetBucket, Key=INUSEFLG)
             print('csv file in use, waiting')
             time.sleep(5)
             inuse = True

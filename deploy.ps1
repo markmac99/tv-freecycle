@@ -6,5 +6,12 @@
 #
 $env:AWS_DEFAULT_REGION="eu-west-1"
 
-compress-archive -path .\*.py -destinationpath .\function.zip -update
-aws lambda update-function-code --function-name freecycleHandler --zip-file fileb://function.zip
+Copy-Item .\fsconfig.py .\config.py
+compress-archive -literalpath .\lambda_handler.py, .\updateCSV.py, .\config.py -destinationpath .\freecycle.zip -update
+aws lambda update-function-code --function-name freecycleHandler --zip-file fileb://freecycle.zip
+
+Copy-Item .\tsconfig.py .\config.py
+compress-archive -literalpath .\lambda_handler.py, .\updateCSV.py, .\config.py -destinationpath .\toycycle.zip -update
+# aws lambda update-function-code --function-name toycycleHandler --zip-file fileb://toycycle.zip
+
+Copy-Item .\fsconfig.py .\config.py
