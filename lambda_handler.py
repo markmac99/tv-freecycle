@@ -2,6 +2,8 @@ import email
 import os
 from email import policy
 import boto3
+from botocore.exceptions import ClientError
+import time
 
 import updateCSV
 
@@ -14,6 +16,16 @@ def lambda_handler(event, context):
 
     record = event['Records'][0]
     assert record['eventSource'] == 'aws:ses'
+
+    inuse = True
+    while inuse is True:
+        try:
+            s3.head_object(Bucket=targetBucket, Key='inputs/inuse.txt')
+            print('csv file in use, waiting')
+            time.sleep(5)
+            inuse = True
+        except ClientError:
+            inuse = False
 
     o = s3.get_object(Bucket=targetBucket, Key='freecycle/' + record['ses']['mail']['messageId'])
     raw_mail = o['Body'].read()

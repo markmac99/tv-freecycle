@@ -3,6 +3,7 @@ import csv
 import os
 from tkinter import messagebox
 import boto3
+import datetime
 import createJsFromCSV
 
 targetBucket = 'tv-freecycle'
@@ -40,9 +41,11 @@ def updateData():
     frame_buttons = tk.Frame(canvas, bg="blue")
     canvas.create_window((0, 0), window=frame_buttons, anchor='nw')
 
-    # download the CSVfile
-
     s3 = boto3.client('s3')
+    # upload flag to warn the email handler that the CSV file is in use
+    s3.upload_file(Bucket=targetBucket, Key='inputs/inuse.txt', Filename='inuse.txt')
+
+    # download the CSVfile
     keyName = 'inputs/freecycle-data.csv'
     fileName = os.path.join(os.getenv('TMP'), 'freecycle-data.csv')
     s3.download_file(Bucket=targetBucket, Key=keyName, Filename=fileName)
@@ -83,9 +86,18 @@ def updateData():
             csvw.writerow(hdr)
             for i in range(rows):
                 fsdata[i][11] = buttons[i][0].get()
-                csvw.writerow(fsdata[i])
+                dateof = datetime.datetime.strptime(fsdata[i][0], '%Y%m%d%H%M%S')
+                ageof = (datetime.datetime.now() - dateof).days
+                if ageof < 50:
+                    csvw.writerow(fsdata[i])
+                else:
+                    print('removing ', fsdata[i][2], ' as more than 7wks old')
 
         s3.upload_file(Bucket=targetBucket, Key=keyName, Filename="newfile.csv")
+
+        # delete the flagfile, its now safe to update the CSV file
+        s3.delete_object(Bucket=targetBucket, Key='inputs/inuse.txt')
+
         # update the webpage
         createJsFromCSV.main()
 
@@ -109,6 +121,9 @@ def updateData():
 
     # Launch the GUI
     root.mainloop()
+    
+    # delete the flagfile, its now safe to update the CSV file
+    s3.delete_object(Bucket=targetBucket, Key='inputs/inuse.txt')
 
 
 if __name__ == '__main__':
