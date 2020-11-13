@@ -4,6 +4,7 @@ import os
 from tkinter import messagebox
 import boto3
 import datetime
+import time
 
 import createJsFromCSV
 import config
@@ -102,11 +103,15 @@ def updateData():
         # delete the flagfile, its now safe to update the CSV file
         s3.delete_object(Bucket=targetBucket, Key=INUSEFLG)
 
-        # update the webpage
-        createJsFromCSV.main()
+        # update the webpage - pause a bit first tho to allow S3 to stabilise
+        time.sleep(3)
 
-        messagebox.showinfo("Data saved", "Webpage Refreshed")
-        root.destroy()
+        succ = createJsFromCSV.main()
+        if succ is False:
+            messagebox.showinfo("Error", "Webpage NOT updated, please try again")
+        else:
+            messagebox.showinfo("Data saved", "Webpage Refreshed")
+            root.destroy()
 
     label1 = tk.Button(frame_main, text="Save", fg="green", command=saveme)
     label1.grid(row=0, column=0, pady=(5, 0), sticky='nw')

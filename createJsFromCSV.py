@@ -9,7 +9,8 @@ import time
 import config
 
 IMGBASEURL = 'https://tvf-att.s3.eu-west-2.amazonaws.com/'
-MAX_ATTEMPTS = 5
+MAX_ATTEMPTS = 3
+PAUSETIME = 3
 ATHENA_TABLE = 'ENTRIES'
 FIELD_DELIMITER = ","
 LINE_DELIMITER = "\n"
@@ -71,7 +72,7 @@ def writeJSFooter(f, sec):
 
 
 def writeFSRecord(rw):
-    fnam = open('freecycle.js', 'w')
+    fnam = open(config.FSFILE, 'w')
     writeJSHeader(fnam, 'freecycle')
     result_row_count = len(rw)
     if result_row_count == 1:
@@ -117,7 +118,7 @@ def writeFSRecord(rw):
 
 
 def writeSARecord(rw):
-    fnam = open('forsale.js', 'w')
+    fnam = open(config.SAFILE, 'w')
     writeJSHeader(fnam, 'forsale')
     result_row_count = len(rw)
     if result_row_count == 1:
@@ -132,6 +133,7 @@ def writeSARecord(rw):
             ite = rwdata[2]['VarCharValue'].replace('�', '')
             des = rwdata[3]['VarCharValue'].replace('�', '')
             pri = rwdata[4]['VarCharValue']
+            pri = '{:.2f}'.format(float(pri))
             nam = rwdata[5]['VarCharValue']
             ema = rwdata[6]['VarCharValue']
             phn = rwdata[7]['VarCharValue']
@@ -144,6 +146,7 @@ def writeSARecord(rw):
             fnam.write('var cell = row.insertCell(1);\n')
             fnam.write('cell.innerHTML = "' + des + '";\n')
             fnam.write('var cell = row.insertCell(2);\n')
+            fnam.write('cell.setAttribute("style","text-align:right");\n')
             fnam.write('cell.innerHTML = "&#163;' + pri + '";\n')
             fnam.write('var cell = row.insertCell(3);\n')
             fnam.write('cell.innerHTML = "' + nam + '";\n')
@@ -166,7 +169,7 @@ def writeSARecord(rw):
 
 
 def writeWTRecord(rw):
-    fnam = open('wanted.js', 'w')
+    fnam = open(config.WTFILE, 'w')
     writeJSHeader(fnam, 'wanted')
     result_row_count = len(rw)
     if result_row_count == 1:
@@ -215,8 +218,8 @@ def fetch_query_results(athena_client: boto3.client, amazon_response: dict) -> d
     query_result = None
     num_attempts = 0
 
+    time.sleep(3)
     while not query_result and num_attempts < MAX_ATTEMPTS:
-        time.sleep(3)
         num_attempts += 1
 
         try:
@@ -227,6 +230,7 @@ def fetch_query_results(athena_client: boto3.client, amazon_response: dict) -> d
             print(f"Attempt {num_attempts} of {MAX_ATTEMPTS} failed.")
             if num_attempts < MAX_ATTEMPTS:
                 print("Trying again ...")
+                time.sleep(PAUSETIME)
             else:
                 print("No further retries.")
 
@@ -274,19 +278,20 @@ def main():
 
         execute_query(athena_client, DROP_TABLE)
         execute_query(athena_client, DROP_DATABASE)
-    except exceptions.ClientError as err:
-        exit(err.response['Error']['Message'])
 
-    s3 = boto3.client('s3')
-    keyName = 'freecycle.js'
-    s3.upload_file(Bucket=S3_TARGET, Key=keyName, Filename=keyName,
-            ExtraArgs={'ContentType': "text/javascript"})
-    keyName = 'wanted.js'
-    s3.upload_file(Bucket=S3_TARGET, Key=keyName, Filename=keyName,
-            ExtraArgs={'ContentType': "text/javascript"})
-    keyName = 'forsale.js'
-    s3.upload_file(Bucket=S3_TARGET, Key=keyName, Filename=keyName,
-            ExtraArgs={'ContentType': "text/javascript"})
+        s3 = boto3.client('s3')
+        fskeyName = config.FSFILE
+        s3.upload_file(Bucket=S3_TARGET, Key=fskeyName, Filename=fskeyName,
+                ExtraArgs={'ContentType': "text/javascript"})
+        wtkeyName = config.WTFILE
+        s3.upload_file(Bucket=S3_TARGET, Key=wtkeyName, Filename=wtkeyName,
+                ExtraArgs={'ContentType': "text/javascript"})
+        sakeyName = config.SAFILE
+        s3.upload_file(Bucket=S3_TARGET, Key=sakeyName, Filename=sakeyName,
+                ExtraArgs={'ContentType': "text/javascript"})
+        return True
+    except:
+        return False
 
 
 if __name__ == '__main__':
