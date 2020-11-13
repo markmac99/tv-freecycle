@@ -116,7 +116,8 @@ def updateData():
 
     # Resize the canvas frame to show exactly 5-by-5 buttons and the scrollbar
     first5columns_width = sum([buttons[0][j].winfo_width() for j in range(0, 5)])
-    first5rows_height = sum([buttons[i][1].winfo_height() for i in range(0, 20)])
+    visrows = min(rows, 25)
+    first5rows_height = sum([buttons[i][1].winfo_height() for i in range(0, visrows)])
     frame_canvas.config(width=first5columns_width + vsb.winfo_width(),
                         height=first5rows_height)
 
