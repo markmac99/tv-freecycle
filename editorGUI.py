@@ -7,6 +7,7 @@ import boto3
 import datetime
 import time
 import configparser
+from cryptography.fernet import Fernet
 
 import createJsFromCSV
 
@@ -19,8 +20,11 @@ def updateData(cfgfile):
     csvname = config['source']['CSVNAME']
     newname = config['source']['NEWNAME']
 
-    dkey = config['aws']['KEY']
-    dsec = config['aws']['SEC']
+    with open('freecycle.key', 'rb') as keyf:
+        privatekey = keyf.read()
+    decor = Fernet(privatekey)
+    dkey = decor.decrypt(config['aws']['KEY'].encode()).decode()
+    dsec = decor.decrypt(config['aws']['SEC'].encode()).decode()
 
     inuseflg = listfldr + '/inuse.txt'
     srccsvfile = listfldr + '/' + csvname

@@ -7,6 +7,8 @@ from botocore import exceptions
 import time
 import os
 import configparser
+from cryptography.fernet import Fernet
+
 
 IMGBASEURL = 'https://tvf-att.s3.eu-west-2.amazonaws.com/'
 MAX_ATTEMPTS = 3
@@ -237,8 +239,11 @@ def main(cfgfile):
     wtkeyName = os.path.join(os.getenv('TMP'), config['website']['WTFILE'])
     sakeyName = os.path.join(os.getenv('TMP'), config['website']['SAFILE'])
 
-    dkey = config['aws']['KEY']
-    dsec = config['aws']['SEC']
+    with open('freecycle.key', 'rb') as keyf:
+        privatekey = keyf.read()
+    decor = Fernet(privatekey)
+    dkey = decor.decrypt(config['aws']['KEY'].encode()).decode()
+    dsec = decor.decrypt(config['aws']['SEC'].encode()).decode()
 
     CREATE_DATABASE = f"CREATE DATABASE IF NOT EXISTS {athenadb};"
     DROP_DATABASE = f"DROP DATABASE {athenadb};"
