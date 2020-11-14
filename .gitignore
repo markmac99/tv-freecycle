@@ -4,3 +4,4 @@ bodies
 *.zip
 __pycache__
 *snewfile.csv
+freecycle.key
