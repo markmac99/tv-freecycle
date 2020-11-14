@@ -1,7 +1,5 @@
 #
 # maintain Toycycle Entries
 #
-
-conda activate Freecycle
-copy tsconfig.py config.py
-python editorGUI.py
+set-location $PSScriptRoot
+python editorGUI.py tsconfig.ini

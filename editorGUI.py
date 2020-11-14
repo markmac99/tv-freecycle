@@ -1,21 +1,30 @@
 import tkinter as tk
 import csv
 import os
+import sys
 from tkinter import messagebox
 import boto3
 import datetime
 import time
+import configparser
 
 import createJsFromCSV
-import config
-
-targetBucket = 'tv-freecycle'
-
-INUSEFLG = config.LISTFLDR + '/inuse.txt'
-CSVFILE = config.LISTFLDR + '/' + config.CSVNAME
 
 
-def updateData():
+def updateData(cfgfile):
+    config = configparser.ConfigParser()
+    config.read(cfgfile)
+    targetBucket = config['source']['BUCKET']
+    listfldr = config['source']['LISTFLDR']
+    csvname = config['source']['CSVNAME']
+    newname = config['source']['NEWNAME']
+
+    dkey = config['aws']['KEY']
+    dsec = config['aws']['SEC']
+
+    inuseflg = listfldr + '/inuse.txt'
+    srccsvfile = listfldr + '/' + csvname
+
     root = tk.Tk()
 
     root.grid_rowconfigure(0, weight=1)
@@ -47,13 +56,13 @@ def updateData():
     frame_buttons = tk.Frame(canvas, bg="blue")
     canvas.create_window((0, 0), window=frame_buttons, anchor='nw')
 
-    s3 = boto3.client('s3')
+    s3 = boto3.client('s3', aws_access_key_id=dkey, aws_secret_access_key=dsec, region_name='eu-west-2')
     # upload flag to warn the email handler that the CSV file is in use
-    s3.upload_file(Bucket=targetBucket, Key=INUSEFLG, Filename='inuse.txt')
+    s3.upload_file(Bucket=targetBucket, Key=inuseflg, Filename='inuse.txt')
 
-    # download the CSVfile
-    fileName = os.path.join(os.getenv('TMP'), config.CSVNAME)
-    s3.download_file(Bucket=targetBucket, Key=CSVFILE, Filename=fileName)
+    # download the source file
+    fileName = os.path.join(os.getenv('TMP'), csvname)
+    s3.download_file(Bucket=targetBucket, Key=srccsvfile, Filename=fileName)
 
     # read the data and count how many rows i need
     rows = 0
@@ -86,7 +95,8 @@ def updateData():
 
     # function to save the data. Needs to be here as it needs 'rows'
     def saveme():
-        with open(config.NEWNAME, 'w', newline='') as outfile:
+        uplName = os.path.join(os.getenv('TMP'), newname)
+        with open(uplName, 'w', newline='') as outfile:
             csvw = csv.writer(outfile, delimiter=',', lineterminator='\n')
             csvw.writerow(hdr)
             for i in range(rows):
@@ -98,19 +108,19 @@ def updateData():
                 else:
                     print('removing ', fsdata[i][2], ' as more than 7wks old')
 
-        s3.upload_file(Bucket=targetBucket, Key=CSVFILE, Filename=config.NEWNAME)
+        s3.upload_file(Bucket=targetBucket, Key=srccsvfile, Filename=uplName)
 
         # delete the flagfile, its now safe to update the CSV file
-        s3.delete_object(Bucket=targetBucket, Key=INUSEFLG)
+        s3.delete_object(Bucket=targetBucket, Key=inuseflg)
 
         # update the webpage - pause a bit first tho to allow S3 to stabilise
         time.sleep(3)
 
-        succ = createJsFromCSV.main()
+        succ = createJsFromCSV.main(cfgfile)
         if succ is False:
-            messagebox.showinfo("Error", "Webpage NOT updated, please try again")
+            messagebox.showinfo("Freecycle GUI", "Webpage NOT updated, please try again")
         else:
-            messagebox.showinfo("Data saved", "Webpage Refreshed")
+            messagebox.showinfo("Freecycle GUI", "Webpage Refreshed")
             root.destroy()
 
     label1 = tk.Button(frame_main, text="Save", fg="green", command=saveme)
@@ -119,22 +129,30 @@ def updateData():
     # Update buttons frames idle tasks to let tkinter calculate buttons sizes
     frame_buttons.update_idletasks()
 
-    # Resize the canvas frame to show exactly 5-by-5 buttons and the scrollbar
-    first5columns_width = sum([buttons[0][j].winfo_width() for j in range(0, 5)])
-    visrows = min(rows, 25)
-    first5rows_height = sum([buttons[i][1].winfo_height() for i in range(0, visrows)])
-    frame_canvas.config(width=first5columns_width + vsb.winfo_width(),
-                        height=first5rows_height)
+    # Resize the canvas frame and show the scrollbar
+    if rows == 0:
+        messagebox.showinfo("Freecycle GUI", "nothing to show, quitting")
+        root.destroy()
+    else:
+        first5columns_width = sum([buttons[0][j].winfo_width() for j in range(0, 5)])
+        visrows = min(rows, 20)
+        visrows = max(visrows, 2)
+        first5rows_height = sum([buttons[i][1].winfo_height() for i in range(0, visrows)])
+        frame_canvas.config(width=first5columns_width + vsb.winfo_width(),
+                            height=first5rows_height)
 
-    # Set the canvas scrolling region
-    canvas.config(scrollregion=canvas.bbox("all"))
+        # Set the canvas scrolling region
+        canvas.config(scrollregion=canvas.bbox("all"))
 
-    # Launch the GUI
-    root.mainloop()
+        # Launch the GUI
+        root.mainloop()
 
-    # delete the flagfile, its now safe to update the CSV file
-    s3.delete_object(Bucket=targetBucket, Key=INUSEFLG)
+        # delete the flagfile, its now safe to update the CSV file
+        s3.delete_object(Bucket=targetBucket, Key=inuseflg)
 
 
 if __name__ == '__main__':
-    updateData()
+    if len(sys.argv) > 1:
+        updateData(sys.argv[1])
+    else:
+        print('usage: python editorGUI.pi config.ini')

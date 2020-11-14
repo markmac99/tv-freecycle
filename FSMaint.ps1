@@ -1,7 +1,5 @@
 #
 # maintain Freecycle Entries
 #
-
-conda activate Freecycle
-copy fsconfig.py config.py
-python editorGUI.py
+set-location $PSScriptRoot
+python editorGUI.py fsconfig.ini

@@ -5,8 +5,7 @@
 import boto3
 from botocore import exceptions
 import time
-
-import config
+import configparser
 
 IMGBASEURL = 'https://tvf-att.s3.eu-west-2.amazonaws.com/'
 MAX_ATTEMPTS = 3
@@ -15,24 +14,7 @@ ATHENA_TABLE = 'ENTRIES'
 FIELD_DELIMITER = ","
 LINE_DELIMITER = "\n"
 QUOTE_CHAR = '"'
-S3_BUCKET = "s3://tv-freecycle"
-S3_INPUT_DIR = f"{S3_BUCKET}/{config.LISTFLDR}/"
-S3_OUTPUT_DIR = f"{S3_BUCKET}/tmp/"
 S3_TARGET = "tvf-att"
-
-CREATE_DATABASE = f"CREATE DATABASE IF NOT EXISTS {config.ATHENA_DB};"
-DROP_DATABASE = f"DROP DATABASE {config.ATHENA_DB};"
-DROP_TABLE = f"DROP TABLE {config.ATHENA_DB}.{ATHENA_TABLE};"
-
-CREATE_TABLE = f"CREATE EXTERNAL TABLE IF NOT EXISTS {config.ATHENA_DB}.{ATHENA_TABLE} (" \
-    "recdt VARCHAR(32), rectyp VARCHAR(10), item VARCHAR(50), descr VARCHAR(300), price VARCHAR(32), " \
-    "contact_n VARCHAR(64), contact_e VARCHAR(64), contact_p VARCHAR(32), " \
-    "url1 VARCHAR(255), url2 VARCHAR(255), url3 VARCHAR(255), deleted INT ) " \
-    "ROW FORMAT DELIMITED " \
-    f"FIELDS TERMINATED BY '{FIELD_DELIMITER}' " \
-    f"LINES TERMINATED BY '{LINE_DELIMITER}' " \
-    f"LOCATION '{S3_INPUT_DIR}' " \
-    "TBLPROPERTIES ('skip.header.line.count' = '1');"
 
 
 def writeJSHeader(f, sec):
@@ -71,8 +53,9 @@ def writeJSFooter(f, sec):
     f.write(msgstr)
 
 
-def writeFSRecord(rw):
-    fnam = open(config.FSFILE, 'w')
+def writeFSRecord(rw, f):
+    fnam = open(f, 'w')
+    # print('opened', f)
     writeJSHeader(fnam, 'freecycle')
     result_row_count = len(rw)
     if result_row_count == 1:
@@ -114,11 +97,13 @@ def writeFSRecord(rw):
             lstr = lstr + '"'
             fnam.write('cell.innerHTML = ' + lstr + '\n')
     writeJSFooter(fnam, 'freecycle')
+    # print('closed', f)
     fnam.close()
 
 
-def writeSARecord(rw):
-    fnam = open(config.SAFILE, 'w')
+def writeSARecord(rw, f):
+    fnam = open(f, 'w')
+    # print('opened', f)
     writeJSHeader(fnam, 'forsale')
     result_row_count = len(rw)
     if result_row_count == 1:
@@ -165,11 +150,13 @@ def writeSARecord(rw):
             lstr = lstr + '"'
             fnam.write('cell.innerHTML = ' + lstr + '\n')
     writeJSFooter(fnam, 'forsale')
+    # print('closed', f)
     fnam.close()
 
 
-def writeWTRecord(rw):
-    fnam = open(config.WTFILE, 'w')
+def writeWTRecord(rw, f):
+    fnam = open(f, 'w')
+    # print('opened', f)
     writeJSHeader(fnam, 'wanted')
     result_row_count = len(rw)
     if result_row_count == 1:
@@ -199,14 +186,15 @@ def writeWTRecord(rw):
             fnam.write('cell.innerHTML = "' + phn + '";\n')
             fnam.write('var cell = row.insertCell(5);\n')
     writeJSFooter(fnam, 'wanted')
+    # print('closed', f)
     fnam.close()
 
 
-def execute_query(athena_client: boto3.client, query: str) -> dict:
+def execute_query(athena_client: boto3.client, query: str, outdir) -> dict:
     return athena_client.start_query_execution(
         QueryString=query,
         ResultConfiguration={
-            "OutputLocation": S3_OUTPUT_DIR,
+            "OutputLocation": outdir,
             "EncryptionConfiguration": {
                 "EncryptionOption": "SSE_S3"
             }
@@ -237,62 +225,92 @@ def fetch_query_results(athena_client: boto3.client, amazon_response: dict) -> d
     return query_result
 
 
-def main():
-    athena_client = boto3.client('athena', region_name='eu-west-2')
+def main(cfgfile):
+    config = configparser.ConfigParser()
+    config.read(cfgfile)
+    srcBucket = config['source']['BUCKET']
+    listfldr = config['source']['LISTFLDR']
+    athenadb = config['source']['ATHENADB']
+
+    fskeyName = config['website']['FSFILE']
+    wtkeyName = config['website']['WTFILE']
+    sakeyName = config['website']['SAFILE']
+
+    dkey = config['aws']['KEY']
+    dsec = config['aws']['SEC']
+
+    CREATE_DATABASE = f"CREATE DATABASE IF NOT EXISTS {athenadb};"
+    DROP_DATABASE = f"DROP DATABASE {athenadb};"
+    DROP_TABLE = f"DROP TABLE {athenadb}.{ATHENA_TABLE};"
+    S3_BUCKET = f's3://{srcBucket}'
+    indir = f"{S3_BUCKET}/{listfldr}/"
+    outdir = f"{S3_BUCKET}/tmp/"
+
+    CREATE_TABLE = f"CREATE EXTERNAL TABLE IF NOT EXISTS {athenadb}.{ATHENA_TABLE} (" \
+        "recdt VARCHAR(32), rectyp VARCHAR(10), item VARCHAR(50), descr VARCHAR(300), price VARCHAR(32), " \
+        "contact_n VARCHAR(64), contact_e VARCHAR(64), contact_p VARCHAR(32), " \
+        "url1 VARCHAR(255), url2 VARCHAR(255), url3 VARCHAR(255), deleted INT ) " \
+        "ROW FORMAT DELIMITED " \
+        f"FIELDS TERMINATED BY '{FIELD_DELIMITER}' " \
+        f"LINES TERMINATED BY '{LINE_DELIMITER}' " \
+        f"LOCATION '{indir}' " \
+        "TBLPROPERTIES ('skip.header.line.count' = '1');"
+
+    athena_client = boto3.client('athena', region_name='eu-west-2',
+        aws_access_key_id=dkey, aws_secret_access_key=dsec)
     try:
-        # print(CREATE_TABLE)
         print('Creating table and database')
-        execute_query(athena_client, CREATE_DATABASE)
-        execute_query(athena_client, CREATE_TABLE)
+        execute_query(athena_client, CREATE_DATABASE, outdir)
+        execute_query(athena_client, CREATE_TABLE, outdir)
 
-        print('executing query')
+        print('executing Free query')
         amazon_response = execute_query(athena_client,
-            f'SELECT DISTINCT * FROM {config.ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'Freecycle\' AND deleted=0 ORDER by 1 DESC;')
+            f'SELECT DISTINCT * FROM {athenadb}.{ATHENA_TABLE} WHERE rectyp = \'Freecycle\' AND deleted=0 ORDER by 1 DESC;', outdir)
 
-        print('fetching query results')
         query_results = fetch_query_results(athena_client, amazon_response)
 
         result_row_count = len(query_results['ResultSet']['Rows'])
         print('got ', result_row_count - 1, ' rows')
         if result_row_count > 0:
             r = query_results['ResultSet']['Rows']
-            writeFSRecord(r)
+            writeFSRecord(r, fskeyName)
 
+        print('executing Wanted query')
         amazon_response = execute_query(athena_client,
-            f'SELECT DISTINCT * FROM {config.ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'Wanted\' AND deleted=0 ORDER by 1 DESC;')
+            f'SELECT DISTINCT * FROM {athenadb}.{ATHENA_TABLE} WHERE rectyp = \'Wanted\' AND deleted=0 ORDER by 1 DESC;', outdir)
         query_results = fetch_query_results(athena_client, amazon_response)
         result_row_count = len(query_results['ResultSet']['Rows'])
         print('got ', result_row_count - 1, ' rows')
         if result_row_count > 0:
             r = query_results['ResultSet']['Rows']
-            writeWTRecord(r)
+            writeWTRecord(r, wtkeyName)
 
+        print('executing For Sale query')
         amazon_response = execute_query(athena_client,
-            f'SELECT DISTINCT * FROM {config.ATHENA_DB}.{ATHENA_TABLE} WHERE rectyp = \'For Sale\' AND deleted=0 ORDER by 1 DESC;')
+            f'SELECT DISTINCT * FROM {athenadb}.{ATHENA_TABLE} WHERE rectyp = \'For Sale\' AND deleted=0 ORDER by 1 DESC;', outdir)
         query_results = fetch_query_results(athena_client, amazon_response)
         result_row_count = len(query_results['ResultSet']['Rows'])
         print('got ', result_row_count - 1, ' rows')
         if result_row_count > 0:
             r = query_results['ResultSet']['Rows']
-            writeSARecord(r)
+            writeSARecord(r, sakeyName)
 
-        execute_query(athena_client, DROP_TABLE)
-        execute_query(athena_client, DROP_DATABASE)
-
-        s3 = boto3.client('s3')
-        fskeyName = config.FSFILE
-        s3.upload_file(Bucket=S3_TARGET, Key=fskeyName, Filename=fskeyName,
-                ExtraArgs={'ContentType': "text/javascript"})
-        wtkeyName = config.WTFILE
-        s3.upload_file(Bucket=S3_TARGET, Key=wtkeyName, Filename=wtkeyName,
-                ExtraArgs={'ContentType': "text/javascript"})
-        sakeyName = config.SAFILE
-        s3.upload_file(Bucket=S3_TARGET, Key=sakeyName, Filename=sakeyName,
-                ExtraArgs={'ContentType': "text/javascript"})
-        return True
+        print('Dropping tables and database')
+        execute_query(athena_client, DROP_TABLE, outdir)
+        execute_query(athena_client, DROP_DATABASE, outdir)
     except:
         return False
 
+    print('updating website')
+    s3 = boto3.client('s3', aws_access_key_id=dkey, aws_secret_access_key=dsec)  # , region_name='eu-west-2')
+    s3.upload_file(Bucket=S3_TARGET, Key=fskeyName, Filename=fskeyName,
+            ExtraArgs={'ContentType': "text/javascript"})
+    s3.upload_file(Bucket=S3_TARGET, Key=wtkeyName, Filename=wtkeyName,
+            ExtraArgs={'ContentType': "text/javascript"})
+    s3.upload_file(Bucket=S3_TARGET, Key=sakeyName, Filename=sakeyName,
+            ExtraArgs={'ContentType': "text/javascript"})
+    return True
+
 
 if __name__ == '__main__':
-    main()
+    main('config.ini')
