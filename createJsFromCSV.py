@@ -5,6 +5,7 @@
 import boto3
 from botocore import exceptions
 import time
+import os
 import configparser
 
 IMGBASEURL = 'https://tvf-att.s3.eu-west-2.amazonaws.com/'
@@ -232,9 +233,9 @@ def main(cfgfile):
     listfldr = config['source']['LISTFLDR']
     athenadb = config['source']['ATHENADB']
 
-    fskeyName = config['website']['FSFILE']
-    wtkeyName = config['website']['WTFILE']
-    sakeyName = config['website']['SAFILE']
+    fskeyName = os.path.join(os.getenv('TMP'), config['website']['FSFILE'])
+    wtkeyName = os.path.join(os.getenv('TMP'), config['website']['WTFILE'])
+    sakeyName = os.path.join(os.getenv('TMP'), config['website']['SAFILE'])
 
     dkey = config['aws']['KEY']
     dsec = config['aws']['SEC']
