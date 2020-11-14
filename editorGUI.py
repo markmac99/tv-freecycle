@@ -134,9 +134,10 @@ def updateData(cfgfile):
         messagebox.showinfo("Freecycle GUI", "nothing to show, quitting")
         root.destroy()
     else:
+        print(rows)
         first5columns_width = sum([buttons[0][j].winfo_width() for j in range(0, 5)])
         visrows = min(rows, 20)
-        visrows = max(visrows, 2)
+        visrows = max(visrows, 1)
         first5rows_height = sum([buttons[i][1].winfo_height() for i in range(0, visrows)])
         frame_canvas.config(width=first5columns_width + vsb.winfo_width(),
                             height=first5rows_height)
