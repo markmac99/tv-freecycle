@@ -209,7 +209,7 @@ def fetch_query_results(athena_client: boto3.client, amazon_response: dict) -> d
     query_result = None
     num_attempts = 0
 
-    time.sleep(3)
+    time.sleep(5)
     while not query_result and num_attempts < MAX_ATTEMPTS:
         num_attempts += 1
 
@@ -235,9 +235,12 @@ def main(cfgfile):
     listfldr = config['source']['LISTFLDR']
     athenadb = config['source']['ATHENADB']
 
-    fskeyName = os.path.join(os.getenv('TMP'), config['website']['FSFILE'])
-    wtkeyName = os.path.join(os.getenv('TMP'), config['website']['WTFILE'])
-    sakeyName = os.path.join(os.getenv('TMP'), config['website']['SAFILE'])
+    fskeyName = config['website']['FSFILE']
+    fslocName = os.path.join(os.getenv('TMP'), fskeyName)
+    wtkeyName = config['website']['WTFILE']
+    wtlocName = os.path.join(os.getenv('TMP'), wtkeyName)
+    sakeyName = config['website']['SAFILE']
+    salocName = os.path.join(os.getenv('TMP'), sakeyName)
 
     with open('freecycle.key', 'rb') as keyf:
         privatekey = keyf.read()
@@ -269,7 +272,7 @@ def main(cfgfile):
         execute_query(athena_client, CREATE_DATABASE, outdir)
         execute_query(athena_client, CREATE_TABLE, outdir)
 
-        print('executing Free query')
+        print('executing query 1')
         amazon_response = execute_query(athena_client,
             f'SELECT DISTINCT * FROM {athenadb}.{ATHENA_TABLE} WHERE rectyp = \'Freecycle\' AND deleted=0 ORDER by 1 DESC;', outdir)
 
@@ -279,9 +282,9 @@ def main(cfgfile):
         print('got ', result_row_count - 1, ' rows')
         if result_row_count > 0:
             r = query_results['ResultSet']['Rows']
-            writeFSRecord(r, fskeyName)
+            writeFSRecord(r, fslocName)
 
-        print('executing Wanted query')
+        print('executing query 2')
         amazon_response = execute_query(athena_client,
             f'SELECT DISTINCT * FROM {athenadb}.{ATHENA_TABLE} WHERE rectyp = \'Wanted\' AND deleted=0 ORDER by 1 DESC;', outdir)
         query_results = fetch_query_results(athena_client, amazon_response)
@@ -289,9 +292,9 @@ def main(cfgfile):
         print('got ', result_row_count - 1, ' rows')
         if result_row_count > 0:
             r = query_results['ResultSet']['Rows']
-            writeWTRecord(r, wtkeyName)
+            writeWTRecord(r, wtlocName)
 
-        print('executing For Sale query')
+        print('executing query 3')
         amazon_response = execute_query(athena_client,
             f'SELECT DISTINCT * FROM {athenadb}.{ATHENA_TABLE} WHERE rectyp = \'For Sale\' AND deleted=0 ORDER by 1 DESC;', outdir)
         query_results = fetch_query_results(athena_client, amazon_response)
@@ -299,7 +302,7 @@ def main(cfgfile):
         print('got ', result_row_count - 1, ' rows')
         if result_row_count > 0:
             r = query_results['ResultSet']['Rows']
-            writeSARecord(r, sakeyName)
+            writeSARecord(r, salocName)
 
         print('Dropping tables and database')
         execute_query(athena_client, DROP_TABLE, outdir)
@@ -309,11 +312,11 @@ def main(cfgfile):
 
     print('updating website')
     s3 = boto3.client('s3', aws_access_key_id=dkey, aws_secret_access_key=dsec)  # , region_name='eu-west-2')
-    s3.upload_file(Bucket=S3_TARGET, Key=fskeyName, Filename=fskeyName,
+    s3.upload_file(Bucket=S3_TARGET, Key=fskeyName, Filename=fslocName,
             ExtraArgs={'ContentType': "text/javascript"})
-    s3.upload_file(Bucket=S3_TARGET, Key=wtkeyName, Filename=wtkeyName,
+    s3.upload_file(Bucket=S3_TARGET, Key=wtkeyName, Filename=wtlocName,
             ExtraArgs={'ContentType': "text/javascript"})
-    s3.upload_file(Bucket=S3_TARGET, Key=sakeyName, Filename=sakeyName,
+    s3.upload_file(Bucket=S3_TARGET, Key=sakeyName, Filename=salocName,
             ExtraArgs={'ContentType': "text/javascript"})
     return True
 
