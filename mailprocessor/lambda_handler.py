@@ -21,7 +21,7 @@ def createLine(fname, targetBucket):
     csvline = nowdt + ','
     typ = lines[0].rstrip('\n')[7:]
     ite = lines[1].rstrip('\n')[6:]
-    ite = ite.replace(',', '&#44;')
+    ite = ite.replace(',', '&#44;').replace('"', '&ldquo;').replace('&', '&amp;')
     ite = ite.replace('£', '&#163;')
     ite = ite.replace("’", '&#39;')
 
@@ -33,7 +33,7 @@ def createLine(fname, targetBucket):
         i += 1
         numlines -= 1
         nxl = lines[i].rstrip('\n')
-    des = des.replace(',', '&#44;')
+    des = des.replace(',', '&#44;').replace('"', '&ldquo;').replace('&', '&amp;')
     des = des.replace('£', '&#163;')
     des = des.replace("’", '&#39;')
     pri = nxl[7:]
