@@ -125,6 +125,8 @@ def updateData(cfgfile):
             messagebox.showinfo("Freecycle GUI", "Webpage NOT updated, please try again")
         else:
             messagebox.showinfo("Freecycle GUI", "Webpage Refreshed")
+            # delete the flagfile, its now safe to update the CSV file
+            s3.delete_object(Bucket=targetBucket, Key=inuseflg)
             root.destroy()
 
     label1 = tk.Button(frame_main, text="Save", fg="green", command=saveme)
@@ -151,9 +153,6 @@ def updateData(cfgfile):
 
         # Launch the GUI
         root.mainloop()
-
-        # delete the flagfile, its now safe to update the CSV file
-        s3.delete_object(Bucket=targetBucket, Key=inuseflg)
 
 
 if __name__ == '__main__':

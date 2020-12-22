@@ -21,9 +21,10 @@ def createLine(fname, targetBucket):
     csvline = nowdt + ','
     typ = lines[0].rstrip('\n')[7:]
     ite = lines[1].rstrip('\n')[6:]
-    ite = ite.replace(',', '&#44;').replace('"', '&ldquo;').replace('&', '&amp;')
-    ite = ite.replace('£', '&#163;')
-    ite = ite.replace("’", '&#39;')
+    ite = ite.replace('&', '&amp;').replace(',', '&#44;').replace('"', '&rdquo;')
+    ite = ite.replace('£', '&#163;').replace('“', '&ldquo;').replace('”', '&rdquo;')
+    ite = ite.replace("'", '&#39;').replace('<', '&lt;').replace('>', '&gt;')
+    ite = ite.replace('‘', '&lsquo;').replace('’', '&rsquo;')
 
     des = lines[2].rstrip('\n')[13:]
     i = 3
@@ -33,9 +34,10 @@ def createLine(fname, targetBucket):
         i += 1
         numlines -= 1
         nxl = lines[i].rstrip('\n')
-    des = des.replace(',', '&#44;').replace('"', '&ldquo;').replace('&', '&amp;')
-    des = des.replace('£', '&#163;')
-    des = des.replace("’", '&#39;')
+    des = des.replace('&', '&amp;').replace(',', '&#44;').replace('"', '&rdquo;')
+    des = des.replace('£', '&#163;').replace('“', '&ldquo;').replace('”', '&rdquo;')
+    des = des.replace("'", '&#39;').replace('<', '&lt;').replace('>', '&gt;')
+    des = des.replace('‘', '&lsquo;').replace('’', '&rsquo;')
     pri = nxl[7:]
     if len(pri) == 0:
         pri = '0'
