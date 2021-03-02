@@ -73,8 +73,8 @@ def writeFSRecord(rw, f):
             ite = rwdata[2]['VarCharValue'].replace('�', '')
             des = rwdata[3]['VarCharValue'].replace('�', '')
             nam = rwdata[5]['VarCharValue']
-            ema = rwdata[6]['VarCharValue']
-            phn = rwdata[7]['VarCharValue']
+            phn = rwdata[6]['VarCharValue']
+            ema = rwdata[7]['VarCharValue']
             url1 = rwdata[8]['VarCharValue']
             url2 = rwdata[9]['VarCharValue']
             url3 = rwdata[10]['VarCharValue']
@@ -86,9 +86,9 @@ def writeFSRecord(rw, f):
             fnam.write('var cell = row.insertCell(2);\n')
             fnam.write('cell.innerHTML = "' + nam + '";\n')
             fnam.write('var cell = row.insertCell(3);\n')
-            fnam.write('cell.innerHTML = "' + ema + '";\n')
-            fnam.write('var cell = row.insertCell(4);\n')
             fnam.write('cell.innerHTML = "' + phn + '";\n')
+            fnam.write('var cell = row.insertCell(4);\n')
+            fnam.write('cell.innerHTML = "' + ema + '";\n')
             fnam.write('var cell = row.insertCell(5);\n')
             lstr = '"'
             if len(url1.strip()) > 0:
@@ -123,8 +123,8 @@ def writeSARecord(rw, f):
             pri = rwdata[4]['VarCharValue']
             pri = '{:.2f}'.format(float(pri))
             nam = rwdata[5]['VarCharValue']
-            ema = rwdata[6]['VarCharValue']
-            phn = rwdata[7]['VarCharValue']
+            phn = rwdata[6]['VarCharValue']
+            ema = rwdata[7]['VarCharValue']
             url1 = rwdata[8]['VarCharValue']
             url2 = rwdata[9]['VarCharValue']
             url3 = rwdata[10]['VarCharValue']
@@ -139,9 +139,9 @@ def writeSARecord(rw, f):
             fnam.write('var cell = row.insertCell(3);\n')
             fnam.write('cell.innerHTML = "' + nam + '";\n')
             fnam.write('var cell = row.insertCell(4);\n')
-            fnam.write('cell.innerHTML = "' + ema + '";\n')
-            fnam.write('var cell = row.insertCell(5);\n')
             fnam.write('cell.innerHTML = "' + phn + '";\n')
+            fnam.write('var cell = row.insertCell(5);\n')
+            fnam.write('cell.innerHTML = "' + ema + '";\n')
             fnam.write('var cell = row.insertCell(6);\n')
             lstr = '"'
             if len(url1.strip()) > 0:
@@ -174,8 +174,8 @@ def writeWTRecord(rw, f):
             ite = rwdata[2]['VarCharValue'].replace('�', '')
             des = rwdata[3]['VarCharValue'].replace('�', '')
             nam = rwdata[5]['VarCharValue']
-            ema = rwdata[6]['VarCharValue']
-            phn = rwdata[7]['VarCharValue']
+            phn = rwdata[6]['VarCharValue']
+            ema = rwdata[7]['VarCharValue']
             fnam.write('var row = table.insertRow(-1);\n')
             fnam.write('var cell = row.insertCell(0);\n')
             fnam.write('cell.innerHTML = "' + ite + '";\n')
@@ -184,9 +184,9 @@ def writeWTRecord(rw, f):
             fnam.write('var cell = row.insertCell(2);\n')
             fnam.write('cell.innerHTML = "' + nam + '";\n')
             fnam.write('var cell = row.insertCell(3);\n')
-            fnam.write('cell.innerHTML = "' + ema + '";\n')
-            fnam.write('var cell = row.insertCell(4);\n')
             fnam.write('cell.innerHTML = "' + phn + '";\n')
+            fnam.write('var cell = row.insertCell(4);\n')
+            fnam.write('cell.innerHTML = "' + ema + '";\n')
             fnam.write('var cell = row.insertCell(5);\n')
     writeJSFooter(fnam, 'wanted')
     # print('closed', f)
@@ -257,7 +257,7 @@ def main(cfgfile):
 
     CREATE_TABLE = f"CREATE EXTERNAL TABLE IF NOT EXISTS {athenadb}.{ATHENA_TABLE} (" \
         "recdt VARCHAR(32), rectyp VARCHAR(10), item VARCHAR(50), descr VARCHAR(300), price VARCHAR(32), " \
-        "contact_n VARCHAR(64), contact_e VARCHAR(64), contact_p VARCHAR(32), " \
+        "contact_n VARCHAR(64), contact_p VARCHAR(64), contact_e VARCHAR(64), " \
         "url1 VARCHAR(255), url2 VARCHAR(255), url3 VARCHAR(255), deleted INT ) " \
         "ROW FORMAT DELIMITED " \
         f"FIELDS TERMINATED BY '{FIELD_DELIMITER}' " \
