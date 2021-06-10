@@ -70,8 +70,8 @@ def writeFSRecord(rw, f):
         typ = rwdata[1]['VarCharValue']
         if typ != 'rectyp':
             typ = rwdata[1]['VarCharValue']
-            ite = rwdata[2]['VarCharValue'].replace('�', '')
-            des = rwdata[3]['VarCharValue'].replace('�', '')
+            ite = rwdata[2]['VarCharValue'].replace('�', '').replace('😂','')
+            des = rwdata[3]['VarCharValue'].replace('�', '').replace('😂','')
             nam = rwdata[5]['VarCharValue']
             phn = rwdata[6]['VarCharValue']
             ema = rwdata[7]['VarCharValue']
