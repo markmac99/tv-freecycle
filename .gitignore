@@ -7,3 +7,6 @@ __pycache__
 freecycle.key
 .terraform
 .terraform*
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+toycycle-data.csv
