@@ -8,6 +8,7 @@ import time
 import os
 import configparser
 from cryptography.fernet import Fernet
+import string
 
 
 IMGBASEURL = 'https://tvf-att.s3.eu-west-2.amazonaws.com/'
@@ -70,8 +71,8 @@ def writeFSRecord(rw, f):
         typ = rwdata[1]['VarCharValue']
         if typ != 'rectyp':
             typ = rwdata[1]['VarCharValue']
-            ite = rwdata[2]['VarCharValue'].replace('�', '').replace('😂','')
-            des = rwdata[3]['VarCharValue'].replace('�', '').replace('😂','')
+            ite = ''.join(filter(lambda x:x in string.printable, rwdata[2]['VarCharValue']))
+            des = ''.join(filter(lambda x:x in string.printable, rwdata[3]['VarCharValue']))
             nam = rwdata[5]['VarCharValue']
             phn = rwdata[6]['VarCharValue']
             ema = rwdata[7]['VarCharValue']
@@ -82,7 +83,7 @@ def writeFSRecord(rw, f):
             fnam.write('var cell = row.insertCell(0);\n')
             fnam.write('cell.innerHTML = "' + ite + '";\n')
             fnam.write('var cell = row.insertCell(1);\n')
-            fnam.write('cell.innerHTML = "' + des + '";\n')
+            fnam.write(f'cell.innerHTML = "{des}";\n')
             fnam.write('var cell = row.insertCell(2);\n')
             fnam.write('cell.innerHTML = "' + nam + '";\n')
             fnam.write('var cell = row.insertCell(3);\n')
@@ -100,7 +101,7 @@ def writeFSRecord(rw, f):
             lstr = lstr + '"'
             fnam.write('cell.innerHTML = ' + lstr + '\n')
     writeJSFooter(fnam, 'freecycle')
-    # print('closed', f)
+    #print('closed', f)
     fnam.close()
 
 

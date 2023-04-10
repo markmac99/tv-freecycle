@@ -5,3 +5,5 @@ bodies
 __pycache__
 *snewfile.csv
 freecycle.key
+.terraform
+.terraform*
