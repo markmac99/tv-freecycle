@@ -92,7 +92,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "tvf_att_lifecycle_rule" {
   }
 }
 
-resource "aws_s3_bucket_acl" "tvf_att_acl"{
+resource "aws_s3_bucket_acl" "tvf_att_acl" {
   bucket = aws_s3_bucket.tvf-att.id
   #acl    = "public-read"
 }
@@ -107,11 +107,48 @@ data "aws_iam_policy_document" "websiteacesspolicy" {
     actions = ["s3:GetObject"]
     sid     = "PublicReadGetObject"
     effect  = "Allow"
-    principals { 
+    principals {
       type        = "AWS"
       identifiers = ["*"]
     }
     resources = ["${aws_s3_bucket.tvf-att.arn}/*"]
   }
 }
+
+
+# lambda permissions to allow functions to be executed from ses
+resource "aws_lambda_permission" "perm_freecycle_lambda" {
+  statement_id   = "allowSesInvoke"
+  action         = "lambda:InvokeFunction"
+  provider       = aws.euw1-prov
+  function_name  = aws_lambda_function.freecycle_lambda.arn
+  principal      = "ses.amazonaws.com"
+  source_account = "317976261112"
+  #source_arn     = aws_s3_bucket.tv-freecycle.arn
+}
+
+
+resource "aws_s3_bucket_policy" "allows_ses_access" {
+  bucket = aws_s3_bucket.tv-freecycle.id
+  policy = data.aws_iam_policy_document.sesaccess_policy.json
+}
+
+data "aws_iam_policy_document" "sesaccess_policy" {
+  statement {
+    actions = ["s3:PutObject"]
+    sid     = "AllowSESPuts"
+    effect  = "Allow"
+    principals {
+      type= "Service"
+      identifiers = ["ses.amazonaws.com"]
+    }
+    resources = ["${aws_s3_bucket.tv-freecycle.arn}/*"]
+    condition  {
+      test = "StringEquals" 
+      variable = "aws:Referer"
+      values = ["317976261112"]
+    }
+  }
+}
+
 
