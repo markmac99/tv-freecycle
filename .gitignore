@@ -10,3 +10,5 @@ freecycle.key
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 toycycle-data.csv
+**/.aws-sam/
+freecycle-data.csv

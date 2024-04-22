@@ -53,4 +53,24 @@ resource "aws_iam_policy" "freecycle_policy" {
   }
 }
 
+# lambda permissions to allow functions to be executed from ses
+resource "aws_lambda_permission" "perm_freecycle_lambda" {
+  statement_id   = "allowSesInvoke"
+  action         = "lambda:InvokeFunction"
+  provider       = aws.euw1-prov
+  function_name  = data.aws_lambda_function.freecycle_lambda.arn
+  principal      = "ses.amazonaws.com"
+  source_account = "317976261112"
+  #source_arn     = aws_s3_bucket.tv-freecycle.arn
+}
 
+# lambda permissions to allow functions to be executed from ses
+resource "aws_lambda_permission" "perm_toycycle_lambda" {
+  statement_id   = "allowSesInvoke"
+  action         = "lambda:InvokeFunction"
+  provider       = aws.euw1-prov
+  function_name  = data.aws_lambda_function.toycycle_lambda.arn
+  principal      = "ses.amazonaws.com"
+  source_account = "317976261112"
+  #source_arn     = aws_s3_bucket.tv-freecycle.arn
+}

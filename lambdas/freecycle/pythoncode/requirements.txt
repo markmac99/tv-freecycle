@@ -1,0 +1,4 @@
+requests
+pyheif
+Pillow
+boto3

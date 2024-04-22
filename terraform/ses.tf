@@ -5,7 +5,16 @@ data "aws_ses_active_receipt_rule_set" "active_rs" {
   #rule_set_name = "default-rule-set"
 }
 
-output "rsn" { value = data.aws_ses_active_receipt_rule_set.active_rs.rule_set_name}
+# lambdas created by AWS SAM
+data "aws_lambda_function" "toycycle_lambda" {
+  provider      = aws.euw1-prov
+  function_name = "toycycle_handler"
+}
+
+data "aws_lambda_function" "freecycle_lambda" {
+  provider      = aws.euw1-prov
+  function_name = "freecycle_handler"
+}
 
 resource "aws_ses_receipt_rule" "freecycle" {
   provider      = aws.euw1-prov
@@ -21,11 +30,12 @@ resource "aws_ses_receipt_rule" "freecycle" {
     position          = 1
   }
   lambda_action {
-    function_arn    = aws_lambda_function.freecycle_lambda.arn
+    function_arn    = data.aws_lambda_function.freecycle_lambda.arn
     invocation_type = "Event"
     position        = 2
   }
 }
+
 resource "aws_ses_receipt_rule" "toycycle" {
   provider      = aws.euw1-prov
   name          = "Save-Toycycle"
@@ -40,7 +50,7 @@ resource "aws_ses_receipt_rule" "toycycle" {
     position          = 1
   }
   lambda_action {
-    function_arn    = aws_lambda_function.toycycle_lambda.arn
+    function_arn    = data.aws_lambda_function.toycycle_lambda.arn
     invocation_type = "Event"
     position        = 2
   }

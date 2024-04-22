@@ -2,3 +2,4 @@ boto3
 cryptography
 tksheet
 pandas
+Pillow

@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  freecycle
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  FreecycleFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Description: Triggered when email is recieved for Freecycle
+      FunctionName: freecycle_handler
+      CodeUri: pythoncode/
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Timeout: 900
+      MemorySize: 512
+      EphemeralStorage:
+        Size: 512
+      Architectures:
+        - x86_64
+      Tags:
+        billingtag: "freecycle"
+      Role: arn:aws:iam::317976261112:role/S3LambdaTriggerRole
+      Environment:
+        Variables:
+          INDEXFILE: "freecycle-data.csv"
+          INDEXFLDR: "fslist"
+          TMP: "/tmp"

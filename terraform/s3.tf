@@ -94,61 +94,89 @@ resource "aws_s3_bucket_lifecycle_configuration" "tvf_att_lifecycle_rule" {
 
 resource "aws_s3_bucket_acl" "tvf_att_acl" {
   bucket = aws_s3_bucket.tvf-att.id
-  #acl    = "public-read"
+  access_control_policy {
+    grant {
+      permission = "READ_ACP"
+      grantee {
+        type = "Group"
+        uri  = "http://acs.amazonaws.com/groups/global/AllUsers"
+      }
+    }
+    grant {
+      permission = "READ"
+      grantee {
+        id   = "dccce3cf1b74e5e5993c35d6ff066f716bce2fbd04683d07c165d7fd0c28a9e4"
+        type = "CanonicalUser"
+      }
+    }
+    grant {
+        permission = "READ_ACP"
+        grantee {
+          id   = "dccce3cf1b74e5e5993c35d6ff066f716bce2fbd04683d07c165d7fd0c28a9e4"
+          type = "CanonicalUser"
+        }
+      }
+    grant {
+        permission = "WRITE"
+        grantee {
+          id   = "dccce3cf1b74e5e5993c35d6ff066f716bce2fbd04683d07c165d7fd0c28a9e4"
+          type = "CanonicalUser"
+        }
+      }
+    grant {
+        permission = "WRITE_ACP"
+        grantee {
+          id   = "dccce3cf1b74e5e5993c35d6ff066f716bce2fbd04683d07c165d7fd0c28a9e4"
+          type = "CanonicalUser"
+        }
+      }
+    owner {
+        id = "dccce3cf1b74e5e5993c35d6ff066f716bce2fbd04683d07c165d7fd0c28a9e4"
+      }
+  }
 }
 
 resource "aws_s3_bucket_policy" "allow_website_access" {
   bucket = aws_s3_bucket.tvf-att.id
-  policy = data.aws_iam_policy_document.websiteacesspolicy.json
-}
-
-data "aws_iam_policy_document" "websiteacesspolicy" {
-  statement {
-    actions = ["s3:GetObject"]
-    sid     = "PublicReadGetObject"
-    effect  = "Allow"
-    principals {
-      type        = "AWS"
-      identifiers = ["*"]
+  policy = jsonencode(
+    {
+      Statement = [
+        {
+          Action    = "s3:GetObject"
+          Effect    = "Allow"
+          Principal = {
+            AWS = "*"
+          }
+          Resource  = "arn:aws:s3:::tvf-att/*"
+          Sid       = "PublicReadGetObject"
+        },
+      ]
+      Version   = "2012-10-17"
     }
-    resources = ["${aws_s3_bucket.tvf-att.arn}/*"]
-  }
+  )
 }
-
-
-# lambda permissions to allow functions to be executed from ses
-resource "aws_lambda_permission" "perm_freecycle_lambda" {
-  statement_id   = "allowSesInvoke"
-  action         = "lambda:InvokeFunction"
-  provider       = aws.euw1-prov
-  function_name  = aws_lambda_function.freecycle_lambda.arn
-  principal      = "ses.amazonaws.com"
-  source_account = "317976261112"
-  #source_arn     = aws_s3_bucket.tv-freecycle.arn
-}
-
 
 resource "aws_s3_bucket_policy" "allows_ses_access" {
   bucket = aws_s3_bucket.tv-freecycle.id
-  policy = data.aws_iam_policy_document.sesaccess_policy.json
-}
-
-data "aws_iam_policy_document" "sesaccess_policy" {
-  statement {
-    actions = ["s3:PutObject"]
-    sid     = "AllowSESPuts"
-    effect  = "Allow"
-    principals {
-      type= "Service"
-      identifiers = ["ses.amazonaws.com"]
+  policy = jsonencode(
+    {
+      Statement = [
+      {
+        Action    = "s3:PutObject"
+        Condition = {
+          StringEquals = {
+            "aws:Referer" = "317976261112"
+            }
+        }
+        Effect    = "Allow"
+        Principal = {
+          Service = "ses.amazonaws.com"
+        }
+        Resource  = "arn:aws:s3:::tv-freecycle/*"
+        Sid       = "AllowSESPuts"
+        },
+      ]
+    Version   = "2012-10-17"
     }
-    resources = ["${aws_s3_bucket.tv-freecycle.arn}/*"]
-    condition  {
-      test = "StringEquals" 
-      variable = "aws:Referer"
-      values = ["317976261112"]
-    }
-  }
+  )
 }
-
-
