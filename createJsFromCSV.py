@@ -129,7 +129,7 @@ def main(cfgfile, upload=True, df=None):
         df = loadItemDetails(listtype)
 
     df.sort_values(by=['uniqueid'], ascending=False, inplace=True)
-    df = df[df.isdeleted==0]
+    df = df[df.isdeleted != 1]
 
     # Freecycle 
     fsdf = df[df.recType=='Freecycle']
