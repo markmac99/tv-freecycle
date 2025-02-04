@@ -7,6 +7,7 @@ import tkinter as tk
 import sys
 from tkinter import messagebox, Frame, Menu
 import time
+import datetime
 import boto3
 import configparser
 from cryptography.fernet import Fernet
@@ -145,11 +146,13 @@ class fsEditor(Frame):
             data = self.fsdata[event['row']]
             #print(data)
             #print('new data', event['value'], 'for', event['column'])
+            dtval = datetime.datetime.strptime(str(data[11]), '%Y%m%d%H%M%S')
+            expdate = int((dtval + datetime.timedelta(days=50)).timestamp())
             newdata = {'uniqueid': data[-1], 'recType': data[1], 
                    'Item': str(data[2]), 'description':data[7], 'price': str(data[6]), 
                    'contact_n': data[3], 'contact_p': data[4], 'contact_e': data[5],
                    'url1': data[8], 'url2': data[9], 'url3': data[10], 
-                   'isdeleted': data[0], 'created': str(data[11])}
+                   'isdeleted': data[0], 'created': str(data[11]), 'expirydate': expdate}
             #print(newdata)
             addRow(newdata=newdata, tblname=self.listtype, ddb=self.ddb)
         return 
