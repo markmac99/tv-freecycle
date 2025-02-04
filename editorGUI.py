@@ -1,9 +1,11 @@
+#
+# Freecycle editor
+#
+# Copyright (C) 2018-2025 Mark McIntyre
+
 import tkinter as tk
-import os
 import sys
 from tkinter import messagebox, Frame, Menu
-import boto3
-import datetime
 import time
 import configparser
 from cryptography.fernet import Fernet
@@ -11,6 +13,8 @@ from tksheet import Sheet
 import pandas as pd
 
 import createJsFromCSV
+
+from ddbTables import loadItemDetails, addRow
 
 global_bg = "Black"
 global_fg = "Gray"
@@ -32,10 +36,7 @@ class fsEditor(Frame):
         config = configparser.ConfigParser()
         config.read(cfgfile)
         self.cfgfile = cfgfile
-        self.targetBucket = config['source']['BUCKET']
-        self.listfldr = config['source']['LISTFLDR']
-        self.csvname = config['source']['CSVNAME']
-        self.newname = config['source']['NEWNAME']
+        self.listtype = config['source']['listtype']
         self.fsdata = []
 
         with open('freecycle.key', 'rb') as keyf:
@@ -44,30 +45,9 @@ class fsEditor(Frame):
         self.dkey = decor.decrypt(config['aws']['KEY'].encode()).decode()
         self.dsec = decor.decrypt(config['aws']['SEC'].encode()).decode()
 
-        self.inuseflg = self.listfldr + '/inuse.txt'
-        self.srccsvfile = self.listfldr + '/' + self.csvname
-
         self.loadData()
-        self.initUI()
 
-        # Update UI changes
-        parent.update_idletasks()
-        parent.update()
-        self.update()
-        return 
-
-    def quitApplication(self):
-        if messagebox.askyesno("Quit", "Do you want to save changes?"):
-            if self.saveData() is True:
-                self.s3.delete_object(Bucket=self.targetBucket, Key=self.inuseflg)
-                quitApp()
-        else:
-            self.s3.delete_object(Bucket=self.targetBucket, Key=self.inuseflg)
-            quitApp()
-
-
-    def initUI(self):
-        self.parent.title('Freecycle Maintenance')
+        self.parent.title(f'{self.listtype} Maintenance')
         # Make menu
         self.menuBar = Menu(self.parent)
         self.parent.config(menu=self.menuBar)
@@ -96,67 +76,52 @@ class fsEditor(Frame):
             width = 700) 
 
         self.sheet.enable_bindings(("single_select", 
-                                         "column_width_resize",
-                                         "double_click_column_resize",
-                                         "arrowkeys",
-                                         "rc_delete_row",
-                                         "copy",
-                                         "cut",
-                                         "paste",
-                                         "delete",
-                                         "undo",
-                                         "edit_cell"
+                                    "column_width_resize",
+                                    "arrowkeys",
+                                    "right_click_popup_menu",
+                                    "copy",
+                                    "cut",
+                                    "paste",
+                                    "delete",
+                                    "undo",
+                                    "edit_cell"
                                     ))
 
         self.frame.grid(row = 1, column = 0, sticky = "nswe")
         self.sheet.grid(row = 0, column = 0, sticky = "nswe")
-        self.sheet.change_theme("light green")
         self.sheet.set_all_column_widths()
+        self.sheet.change_theme("light green")
+
+        self.sheet.extra_bindings([("begin_edit_cell", self.begin_edit_cell),
+                                   ("end_edit_cell", self.end_edit_cell)])
+
+    def quitApplication(self):
+        if messagebox.askyesno("Quit", "Do you want to save changes?"):
+            if self.saveData() is True:
+                quitApp()
+        else:
+            quitApp()
 
     def loadData(self):
-        self.s3 = boto3.client('s3', aws_access_key_id=self.dkey, aws_secret_access_key=self.dsec, region_name='eu-west-2')
-
-        # upload flag to warn the email handler that the CSV file is in use
-        self.s3.upload_file(Bucket=self.targetBucket, Key=self.inuseflg, Filename='inuse.txt')
-
-        # download the source file
-        fileName = os.path.join(os.getenv('TMP'), self.csvname)
-        self.s3.download_file(Bucket=self.targetBucket, Key=self.srccsvfile, Filename=fileName)
-
-        # read the data and count how many rows i need
-        df = pd.read_csv(fileName)
-        df = df.fillna('')
+        df = loadItemDetails(self.listtype)
         self.orig_hdrs = df.columns.tolist()
-        df2=df[['deleted','Type','Item','Contact_n','contact_p','Contact_e','Price','Description','url1','url2','url3', 'recDt']]
+        df2=df[['isdeleted','recType','Item','contact_n','contact_p','contact_e','price','description','url1','url2','url3', 'created', 'uniqueid']]
         self.hdrs = df2.columns.tolist()
         self.fsdata = df2.values.tolist()
         self.rows = len(self.fsdata)
-        print(f'read {self.rows} rows from {fileName}')
-        return 
+        print(f'read {self.rows} rows from {self.listtype}')
     
     def saveData(self):
-        uplName = os.path.join(os.getenv('TMP'), self.newname)
-        df2 = pd.DataFrame(self.fsdata, columns=self.hdrs)
-        df = df2[self.orig_hdrs].copy()
-        now = datetime.datetime.now()
-        df['age']=[(now - datetime.datetime.strptime(str(ds),'%Y%m%d%H%M%S')).days for ds in df.recDt]
-        nold = len(df[df.age>=MAXAGE])
-        if nold > 0:
-            print(f'deleting entries more than {MAXAGE} days old')
-            print(df[df.age>=50])
-        df = df[df.age<50]
-        df = df.drop(columns=['age'])
-        df.to_csv(uplName, index=False)
-
-        self.s3.upload_file(Bucket=self.targetBucket, Key=self.srccsvfile, Filename=uplName)
+        df = pd.DataFrame(self.fsdata, columns=self.hdrs)
+        #df = df2[self.orig_hdrs].copy()
 
         # update the webpage - retry a few times if necessary
         retries = 0
-        succ = createJsFromCSV.main(self.cfgfile)
+        succ = createJsFromCSV.main(self.cfgfile, True, df=df)
         while succ is False and retries < 5:
             print('retrying...')
             time.sleep(3)
-            succ = createJsFromCSV.main(self.cfgfile)
+            succ = createJsFromCSV.main(self.cfgfile, True, df=df)
             retries += 1
         if not succ:
             messagebox.showinfo("Freecycle GUI", "Webpage NOT updated, please try again")
@@ -165,7 +130,28 @@ class fsEditor(Frame):
             messagebox.showinfo("Freecycle GUI", "Webpage Refreshed")
             return True
 
+    def begin_edit_cell(self, event):
+        self.oldval = event['value']
+        #print(self.oldval, event['row'])
+        return self.oldval
 
+    def end_edit_cell(self, event):
+        #print(event)
+        if event['value'] != self.oldval: 
+            #print('changed value')
+
+            data = self.fsdata[event['row']]
+            #print(data)
+            #print('new data', event['value'], 'for', event['column'])
+            newdata = {'uniqueid': data[-1], 'recType': data[1], 
+                   'Item': str(data[2]), 'description':data[7], 'price': str(data[6]), 
+                   'contact_n': data[3], 'contact_p': data[4], 'contact_e': data[5],
+                   'url1': data[8], 'url2': data[9], 'url3': data[10], 
+                   'isdeleted': data[0], 'created': str(data[11])}
+            #print(newdata)
+            addRow(newdata=newdata)
+        return 
+    
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
