@@ -25,12 +25,13 @@ def deleteRow(tblname='freecycle', ddb=None, uniqueid=None):
 
 def addRow(tblname='freecycle', ddb=None, newdata=None):
     '''
-    add a row to the CamDetails table
+    add a row to the table
     '''
     if not newdata:
         return 
     if not ddb:
         ddb = boto3.resource('dynamodb', region_name='eu-west-1')
+    # print(f'writing to {tblname}')
     table = ddb.Table(tblname)
     response = table.put_item(Item=newdata)
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
@@ -38,7 +39,7 @@ def addRow(tblname='freecycle', ddb=None, newdata=None):
     return 
 
 
-def dumpCamTable(outdir, tblname='freecycle', ddb=None):
+def dumpTable(outdir, tblname='freecycle', ddb=None):
     data = loadItemDetails(tblname, ddb)
     data.to_csv(os.path.join(outdir,f'{tblname}.csv'), index=False)
 
@@ -69,8 +70,11 @@ def initDatabase(isFS=True):
     bucket = 'tv-freecycle'
     if isFS:
         csvfile = 'fslist/freecycle-data.csv'
+        tblname = 'freecycle'
     else:
         csvfile = 'tslist/toycycle-data.csv'
+        tblname = 'toycycle'
+    print(f'loading {csvfile} into {tblname}')
     tmpfile = os.path.join(os.getenv('TMP'), 'fsraw.csv')
     s3 = boto3.client('s3')
     s3.download_file(bucket, csvfile, tmpfile)
@@ -83,7 +87,6 @@ def initDatabase(isFS=True):
             phno = '0' + phno
         uniqueid = uniqueid + 1
         idstr = f'{uniqueid:09d}'
-        print(data['recDt'])
         dtval = datetime.datetime.strptime(str(data['recDt']), '%Y%m%d%H%M%S')
         expdate = int((dtval + datetime.timedelta(days=50)).timestamp())
         newdata = {'uniqueid': idstr, 'recType': data['Type'], 
@@ -92,5 +95,5 @@ def initDatabase(isFS=True):
                    'url1': data['url1'], 'url2': data['url2'], 'url3': data['url3'], 
                    'isdeleted': data['deleted'], 'created': str(data['recDt']), 'expirydate': expdate}
         print(newdata)
-        addRow(newdata=newdata)
+        addRow(tblname=tblname, newdata=newdata)
     return 
