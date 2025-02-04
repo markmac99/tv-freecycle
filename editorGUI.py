@@ -7,6 +7,7 @@ import tkinter as tk
 import sys
 from tkinter import messagebox, Frame, Menu
 import time
+import boto3
 import configparser
 from cryptography.fernet import Fernet
 from tksheet import Sheet
@@ -45,6 +46,7 @@ class fsEditor(Frame):
         self.dkey = decor.decrypt(config['aws']['KEY'].encode()).decode()
         self.dsec = decor.decrypt(config['aws']['SEC'].encode()).decode()
 
+        self.ddb = boto3.resource('dynamodb', aws_access_key_id=self.dkey, aws_secret_access_key=self.dsec, region_name='eu-west-1')
         self.loadData()
 
         self.parent.title(f'{self.listtype} Maintenance')
@@ -103,7 +105,7 @@ class fsEditor(Frame):
             quitApp()
 
     def loadData(self):
-        df = loadItemDetails(self.listtype)
+        df = loadItemDetails(self.listtype, ddb=self.ddb)
         self.orig_hdrs = df.columns.tolist()
         df2=df[['isdeleted','recType','Item','contact_n','contact_p','contact_e','price','description','url1','url2','url3', 'created', 'uniqueid']]
         self.hdrs = df2.columns.tolist()
@@ -149,7 +151,7 @@ class fsEditor(Frame):
                    'url1': data[8], 'url2': data[9], 'url3': data[10], 
                    'isdeleted': data[0], 'created': str(data[11])}
             #print(newdata)
-            addRow(newdata=newdata)
+            addRow(newdata=newdata, tblname=self.listtype, ddb=self.ddb)
         return 
     
 

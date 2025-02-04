@@ -6,4 +6,5 @@ conda activate freecycle
 git stash
 git pull
 git stash apply
+$env:AWS_PROFILE=$null
 python editorGUI.py fsconfig.ini
